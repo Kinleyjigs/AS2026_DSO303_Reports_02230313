@@ -26,8 +26,6 @@ A university deploying a Unified Student Management System (USMS) needs to give 
 | usms-developers | USMSDeveloperBase (read infrastructure + build VPC networking); inline self-service credential policy on individual users |
 | usms-auditors | ReadOnlyAccess (AWS managed policy) |
 
-## 4. System Architecture / Design
-
 
 ## 5. Implementation Procedure
 The practical began by configuring the AWS CLI (via Floci) and verifying connectivity with aws sts get-caller-identity. Three IAM groups (admins, developers, auditors) were created, and three users were added to their matching groups.
