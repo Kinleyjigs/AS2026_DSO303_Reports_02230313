@@ -1,14 +1,8 @@
 # Lab 2 VPC 
 
-## 
-
-
-
-
 
 #### Step 1 Resume the environment
 Before we start with this VPC lab we should be doing the lab 1 IAM. here the lab expects the part B of lab 1 to be done 
-
 ![alt text](<../../screenshots/Lab 2 screenshots/1.png>)
 
 Verify floci running by deleting the running docker floci image and running it again.
@@ -170,4 +164,4 @@ Restarts the environment and re-checks that everything (VPC, subnet count, secur
 #### Step 24 Write configs/lab-02.env
 Saves all the resource IDs (VPC, subnets, security groups, etc.) into configs/lab-02.env so the next lab can reuse them without having to remember or recreate anything.
 
-#### Step 25 Commit your work
+#### Verifications 

@@ -39,49 +39,49 @@ Configuration was verified throughout with CLI list/get commands, with outputs a
 
 
 #### Start Floci: Ran ./scripts/setup/floci-up.sh to bring the environment up with a verified host bind mount.
-![alt text](../../screenshots/1.png)
+![alt text](<../../screenshots/Lab 1 screenshots/1.png>)
 
 ####  (Health check): Verified Floci was reachable via docker compose ps, floci status, and curl http://localhost:4566/_floci/health.
-![alt text](../../screenshots/2.png)
+![alt text](<../../screenshots/Lab 1 screenshots/2.png>)
 
 #### This will verify which column tells us where each value came from, and explain why the Type for the access key says shared-credentials-file.
-![alt text](../../screenshots/3.png)
+![alt text](<../../screenshots/Lab 1 screenshots/3.png>)
 
 #### Create the floci AWS CLI profile
-![alt text](<../../screenshots/4.png>)
+![alt text](<../../screenshots/Lab 1 screenshots/4.png>)
 
 #### Your first AWS CLI command, and the whoami helper
-![alt text](<../../screenshots/5.png>)
+![alt text](<../../screenshots/Lab 1 screenshots/5.png>)
 
 #### Prove isolation from real AWS, and prove persistence 
 inspect the actual URL the CLI used
-![alt text](../../screenshots/6.png)
+![alt text](<../../screenshots/Lab 1 screenshots/6.png>)
 
 
 #### first AWS CLI command, and the whoami helper
-here we ask the emulator "who am I?" — the single most useful diagnostic command in AWS — and wrap it in a script that will run at the start of every lab.
-![alt text](<../../screenshots/7.png>)
+here we ask the emulator "who am I?" the single most useful diagnostic command in AWS and wrap it in a script that will run at the start of every lab.
+![alt text](<../../screenshots/Lab 1 screenshots/7.png>)
 
 #### Prove isolation from real AWS, and prove persistence
 inspect the actual URL the CLI used
-![alt text](<../../screenshots/8.png>)
+![alt text](<../../screenshots/Lab 1 screenshots/8.png>)
 
 
 stop the container
-![alt text](<../../screenshots/9.png>)
+![alt text](<../../screenshots/Lab 1 screenshots/9.png>)
 
 Persistence — the test that actually matters
-![alt text](<../../screenshots/10.png>)
+![alt text](<../../screenshots/Lab 1 screenshots/10.png>)
 
 Clean up the marker & Exit codes
-![alt text](<../../screenshots/11.png>)
+![alt text](<../../screenshots/Lab 1 screenshots/11.png>)
 
-**Floci Limitation — identity is not really authenticated**
+**Floci Limitation: identity is not really authenticated**
     
     Real AWS verifies your signature cryptographically and rejects wrong credentials. Floci accepts any non-empty credentials by default, and reports you as the account root user. So get-caller-identity in Floci confirms connectivity, not authentication.
 
 #### Storage diagnostics, README, and commit Part A
-![alt text](<../../screenshots/12.png>)
+![alt text](<../../screenshots/Lab 1 screenshots/12.png>)
 
 # PART B — Building the IAM Foundation (Steps 16–33)
 
@@ -89,113 +89,102 @@ Clean up the marker & Exit codes
 #### Purpose
 Understand the vocabulary before typing commands. Five minutes here saves an hour of confusion later.
 
-#### Floci Limitation — policies are stored, not enforced (by default)
-
-    This is the most important Floci caveat in this lab.
-
+#### Floci Limitation: policies are stored, not enforced (by default)
     Real AWS evaluates every request against IAM policies and returns AccessDenied when they do not permit it. Floci, by default, accepts any non-empty credentials and does not authorize requests against your IAM policies unless stricter authentication is explicitly enabled.
 
-    What this means for you: everything you write in this lab is stored, retrievable and syntactically validated — you are learning real IAM authoring. But you generally will not see an AccessDenied in Floci simply because a policy was too narrow. Step 32 shows the policy simulator as the closest available substitute, and Section 12 lists exactly which parts of this lab are "conceptual / real AWS" rather than "enforced by Floci".
 
 #### Inspect the empty IAM account
 
-![alt text](<../../screenshots/17.png>)
+![alt text](<../../screenshots/Lab 1 screenshots/17.png>)
 
 #### Create the IAM groups
-![alt text](<../../screenshots/18a.png>)
+![alt text](<../../screenshots/Lab 1 screenshots/18a.png>)
 
-create-group creates an empty IAM group. A group has no permissions and no members at birth — it is purely a container. Note there is no --region: IAM is global.
+create-group creates an empty IAM group. A group has no permissions and no members at birth, it is purely a container. Note there is no --region: IAM is global.
 
 verify
-![alt text](../../screenshots/18b.png)
+![alt text](<../../screenshots/Lab 1 screenshots/18b.png>)
 
 #### Create the IAM users and capture their ARNs
-Create three users, and learn the single most important AWS CLI habit: never copy an ID by hand.
+Creating three users, and learning the single most important AWS CLI habit.
 
-Concept: why capture output into variables
-
-Copying arn:aws:iam::000000000000:user/usms-dev-01 by hand from the screen into the next command is slow and error-prone. Instead, ask the CLI for exactly one value and store it in a shell variable
-
-![alt text](<../../screenshots/19a.png>)
+![alt text](<../../screenshots/Lab 1 screenshots/19a.png>)
 
 Verify
-![alt text](<../../screenshots/19b.png>)
+![alt text](<../../screenshots/Lab 1 screenshots/19b.png>)
 
 #### Add users to groups
-![alt text](<../../screenshots/20.png>)
+![alt text](<../../screenshots/Lab 1 screenshots/20.png>)
 
 #### Explore and attach an AWS managed policy
 Explore what is available
-![alt text](<../../screenshots/21.png>)
+![alt text](<../../screenshots/Lab 1 screenshots/21.png>)
 
 #### Write your first customer managed policy
-![alt text](<../../screenshots/22a.png>)
+![alt text](<../../screenshots/Lab 1 screenshots/22a.png>)
 
-![alt text](<../../screenshots/22b.png>)
+![alt text](<../../screenshots/Lab 1 screenshots/22b.png>)
 
 #### Write the S3 data policy (used for real in Lab 4)
-Write the policy that will govern student transcript storage, and get the bucket-vs-object ARN distinction right.
+Writing the policy that will govern student transcript storage, and get the bucket-vs-object ARN distinction right.
 
-![alt text](../../screenshots/23.png)
+![alt text](<../../screenshots/Lab 1 screenshots/23.png>)
 
-![alt text](../../screenshots/23b.png)
+![alt text](<../../screenshots/Lab 1 screenshots/23b.png>)
 
 #### Use --generate-cli-skeleton to discover parameters
-![alt text](../../screenshots/24.png)
+![alt text](<../../screenshots/Lab 1 screenshots/24.png>)
 
 #### Add an inline policy (self-service credentials)
 
-![alt text](../../screenshots/25.png)
+![alt text](<../../screenshots/Lab 1 screenshots/25.png>)
 
 #### Inspect what you have built
 Everything about one user
-![alt text](../../screenshots/26a.png)
+![alt text](<../../screenshots/Lab 1 screenshots/26a.png>)
 
 Read the actual policy JSON back out
-![alt text](../../screenshots/26b.png)
+![alt text](<../../screenshots/Lab 1 screenshots/26b.png>)
 
 #### Policy versions
-![alt text](../../screenshots/27.png)
+![alt text](<../../screenshots/Lab 1 screenshots/27.png>)
 
 #### Create a role for EC2, with a trust policy
-![alt text](../../screenshots/28a.png)
+![alt text](<../../screenshots/Lab 1 screenshots/28a.png>)
 
 give permission 
-![alt text](../../screenshots/28b.png)
+![alt text](<../../screenshots/Lab 1 screenshots/28b.png>)
 
 Create the instance profile & verify 
-![alt text](../../screenshots/28c.png)
+![alt text](<../../screenshots/Lab 1 screenshots/28c.png>)
 
 #### Create the Lambda execution role
 create lumbda function and verify 
-![alt text](../../screenshots/29.png)
+![alt text](<../../screenshots/Lab 1 screenshots/29.png>)
 
 #### A role for humans, and temporary credentials with STS
 Create the role with an account-principal trust policy
 
-![alt text](../../screenshots/30a.png)
+![alt text](<../../screenshots/Lab 1 screenshots/30a.png>)
 
 Give the developers group permission to assume it
-![alt text](../../screenshots/30b.png)
+![alt text](<../../screenshots/Lab 1 screenshots/30b.png>)
 
 Assume the role
-![alt text](../../screenshots/30c.png)
+![alt text](<../../screenshots/Lab 1 screenshots/30c.png>)
 
 #### Access keys, handled safely
 Create programmatic credentials for usms-dev-01 and store them without ever risking a commit.
-![alt text](../../screenshots/31a.png)
+![alt text](<../../screenshots/Lab 1 screenshots/31a.png>)
 
 Confirm Git really is protecting you
-![alt text](../../screenshots/31b.png)
+![alt text](<../../screenshots/Lab 1 screenshots/31b.png>)
 
 Create a second profile that uses this key
-![alt text](../../screenshots/31c.png)
-
-#### Test permissions with the policy simulator
-![alt text](../../screenshots/32.png)
+![alt text](<../../screenshots/Lab 1 screenshots/31c.png>)
 
 #### Verification
-![alt text](../../screenshots/verification.png)
+![alt text](<../../screenshots/Lab 1 screenshots/verification.png>)
 
 ## Analysis and Discussion
 
