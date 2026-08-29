@@ -1,6 +1,45 @@
-# Lab 2 VPC 
+# Lab 2 VPC: Virtual Private Cloud and Networking
 
+## Aim 
+To design and build a secure, multi-tier VPC for the USMS system using the AWS CLI, 
+including public and private subnets, routing, an internet gateway, a NAT gateway, 
+security groups, a network ACL, and an S3 gateway endpoint and to verify the network 
+is correctly isolated, tagged, and persists across a restart.
 
+## Introduction
+A VPC is an isolated private network within AWS, and every resource that needs 
+networking must live inside one. This lab builds a VPC entirely from the AWS CLI, 
+capturing every resource ID into shell variables and later into a config file instead 
+of copying values by hand. It covers CIDR addressing, the difference between public and 
+private subnets (which comes down to routing, not naming), the two AWS firewall layers 
+security groups (stateful, instance-level) and network ACLs (stateless, subnet-level)
+and how a NAT gateway and an S3 gateway endpoint control what traffic can leave a 
+private subnet and where it goes.
+
+## Use Case
+USMS is a university student management system with three requirements this network is 
+built around:
+- A **web tier** reachable from the public internet.
+- A **data tier** (transcripts, enrolment records) that must never be reachable from the 
+  internet.
+- The data tier must still be able to fetch OS updates **outbound only**.
+
+A public subnet serves the web tier, a private subnet holds the data tier, and a NAT 
+gateway gives the private subnet one-way outbound access. The network spans two 
+Availability Zones so it can tolerate the loss of one.
+
+## System Architecture / Design
+
+**USMS VPC architecture**
+![alt text](<../../screenshots/Lab 2 screenshots/architect.png>)
+
+The diagram shows the USMS VPC layout public subnets hosting the web tier and NAT gateway, private subnets hosting the database and NACL, internet access routed through the 
+gateway, and S3 reached via the gateway endpoint instead of the public internet.
+
+**AWS Academy VPC and NAT gateway pattern**
+![alt text](<../../screenshots/Lab 2 screenshots/NAT.png>)
+
+## Evidence and Results
 #### Step 1 Resume the environment
 Before we start with this VPC lab we should be doing the lab 1 IAM. here the lab expects the part B of lab 1 to be done 
 ![alt text](<../../screenshots/Lab 2 screenshots/1.png>)
@@ -165,3 +204,33 @@ Restarts the environment and re-checks that everything (VPC, subnet count, secur
 Saves all the resource IDs (VPC, subnets, security groups, etc.) into configs/lab-02.env so the next lab can reuse them without having to remember or recreate anything.
 
 #### Verifications 
+The verification script against all Lab 02 resources shows that 32/33 pass. The one failure 
+(`usms-db-sg` group reference) is a confirmed Floci limitation where group-to-group security 
+rules don't persist, not a configuration mistake, I tested four different valid syntaxes but 
+still got the same error.
+
+![alt text](<../../screenshots/Lab 2 screenshots/36.png>)
+
+
+## Reflection
+1. What did you learn?
+from this lab i learned how to build a VPC from the CLI instead of clicking through the console, which is how I did a similar lab in AWS Academy before. I also learned how to set up public and private subnets, an internet gateway, security groups, and NACLs by hand.I also learned that security groups are stateful and sit on the instance, NACLs are stateless and sit on the subnet.
+
+2. What challenges did you encounter?
+The verification step (Step 9) was the hardest part. I started at 28/33 and had to debug each failure one by one. a broken db-sg rule, an unattached NACL, empty config values, and a secret file tracked by git. I fixed four of the five and got to 32/33. 
+
+The one I couldn't fix was the db-sg rule — I tried four different valid CLI approaches, including recreating the security group after a full container restart, and none of them stuck. Turned out to be a Floci bug, not something wrong with my commands.
+
+3. How would you apply this in a real-world environment?
+I would use public and private subnets to separate web servers from databases. NAT gateways can provide controlled internet access for private resources, while S3 endpoints can provide secure and efficient access to S3. I would also keep resource IDs organized and secrets out of Git.
+
+4. What additional concepts would you like to explore?
+I'd like to look into VPC peering and Transit Gateway next, since real setups usually have more than one VPC that need to talk to each other. I'm also curious about interface endpoints, and using Terraform instead of writing out CLI commands every time.
+
+## Conclusion 
+From this Lab I gained a practical experience in creating a VPC with public and private subnets, an internet gateway, NAT gateway, security groups, and network ACLs using the AWS CLI, and verified the setup with the provided verification script.
+This lab shows the importance of network segmentation in cloud computing and showed how a VPC forms the foundation of network security on AWS.
+
+
+
+
