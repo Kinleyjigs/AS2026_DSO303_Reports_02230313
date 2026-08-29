@@ -219,13 +219,13 @@ from this lab i learned how to build a VPC from the CLI instead of clicking thro
 2. What challenges did you encounter?
 The verification step (Step 9) was the hardest part. I started at 28/33 and had to debug each failure one by one. a broken db-sg rule, an unattached NACL, empty config values, and a secret file tracked by git. I fixed four of the five and got to 32/33. 
 
-The one I couldn't fix was the db-sg rule — I tried four different valid CLI approaches, including recreating the security group after a full container restart, and none of them stuck. Turned out to be a Floci bug, not something wrong with my commands.
+The one I couldn't fix was the db-sg rule I tried four different valid CLI approaches, including recreating the security group after a full container restart, and none of them stuck. Turned out to be a Floci bug, not something wrong with my commands.
 
 3. How would you apply this in a real-world environment?
 I would use public and private subnets to separate web servers from databases. NAT gateways can provide controlled internet access for private resources, while S3 endpoints can provide secure and efficient access to S3. I would also keep resource IDs organized and secrets out of Git.
 
 4. What additional concepts would you like to explore?
-I'd like to look into VPC peering and Transit Gateway next, since real setups usually have more than one VPC that need to talk to each other. I'm also curious about interface endpoints, and using Terraform instead of writing out CLI commands every time.
+I would like to look into VPC peering and Transit Gateway next, since real setups usually have more than one VPC that need to talk to each other. I am also curious about interface endpoints, and using Terraform instead of writing out CLI commands every time.
 
 ## Conclusion 
 From this Lab I gained a practical experience in creating a VPC with public and private subnets, an internet gateway, NAT gateway, security groups, and network ACLs using the AWS CLI, and verified the setup with the provided verification script.
