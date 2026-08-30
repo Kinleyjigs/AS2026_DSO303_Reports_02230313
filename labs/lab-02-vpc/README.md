@@ -211,6 +211,19 @@ still got the same error.
 
 ![alt text](<../../screenshots/Lab 2 screenshots/36.png>)
 
+## AWS Console Verification
+Task 1: Create Your VPC
+![alt text](<../../screenshots/Lab 2 screenshots/vpc1.png>)
+
+Task 2: Create Additional Subnets
+![alt text](<../../screenshots/Lab 2 screenshots/vpc2.png>)
+
+Task 3: Create a VPC Security Group
+![alt text](<../../screenshots/Lab 2 screenshots/vpc3.png>)
+
+Task 4: Launch a Web Server Instance
+![alt text](<../../screenshots/Lab 2 screenshots/vpc4.png>)
+
 
 ## Reflection
 1. What did you learn?
