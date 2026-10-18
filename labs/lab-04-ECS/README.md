@@ -54,7 +54,7 @@ The enrolment service is the endpoint the USMS student portal calls when a stude
 ## 5. Implementation Procedure 
 All commands were run from the repository root `~/aws-floci-course/`. After starting Floci and loading the env files from Labs 1 to 3, I confirmed that Labs 2 and 3 were still intact (FAIL=0 on both verify scripts) and probed which AWS services this Floci build supports. I then created the ECS cluster while temporarily holding usms-developer-role, created the /usms/ecs/enrolment log group with 7-day retention, and built the two IAM roles. The execution role got a least-privilege policy for image pulls and log writes, and the task role got Lab 1's USMSStudentDataReadWrite, reused unchanged. Next, I created usms-enrolment-sg, allowing tcp/80 only from the web tier's usms-app-sg, and wrote and registered the Fargate task definition usms-enrolment:1 (awsvpc, 256 CPU / 512 MiB, both roles, awslogs). With those pieces in place, I created usms-enrolment-svc with a desired count of 2 across both private subnets with no public IP, read it back, and scaled it by hand from 2 to 3 and back to 2. Finally, I recorded every name and ARN in configs/lab-04.env by API lookup, built the verification script (PASS=38 FAIL=0) and the end-of-course cleanup script (syntax-checked, not run), and committed the work using explicit paths.
 
-### 6. Results and Evidence
+## 6. Results and Evidence
 
 ### Step 1 - Resume the environment and load three env files
 
@@ -166,48 +166,16 @@ This is exactly what an Application Auto Scaling policy will do in Lab 06: chang
 
 *`configs/lab-04.env` written by lookup: all values populated, 17 exports, baseline desired = 2.*
 
-Values are looked up from the API, not copied from shell variables, so a populated value is evidence that the resource exists. `USMS_ECS_DESIRED_BASELINE` is read back rather than hard-coded; Lab 06 uses it as the scalable target's floor.
 
-## Verification
 
-`scripts/utilities/verify-lab-04.sh` checks the environment, the Lab 1–3 dependencies, both IAM roles and their trust, the log group's retention, the cluster, the task definition (awsvpc, FARGATE, **different** roles), the service (two subnets, no public IP, correct SG, desired = baseline), the security group (sourced from `usms-app-sg`, nothing from `0.0.0.0/0`) and Git hygiene.
+## 7. Verification
+The custom script `verify-lab-04.sh` checked the environment, the dependencies from earlier labs, both IAM roles, the log group, the cluster, the task definition, the service, the security group and Git hygiene. It reported 38 PASS and 0 FAIL, and it still passed after the Exercise 4 practice service was deleted. The end-of-course cleanup script lab-04-cleanup.sh was syntax-checked with bash -n but deliberately not run, because Labs 05 and 06 depend on these resources.
 
-**Result: `PASS=38 FAIL=0`**, re-confirmed after the Exercise 4 deletion (see `exercises.md`, screenshot 16).
+![alt text](<../../screenshots/Lab 4 screenshots/18.png>)
 
-`scripts/cleanup/lab-04-cleanup.sh` was written and checked with `bash -n` only. **It has not been run.** It is end-of-course only, runs after the Lab 06 and Lab 05 cleanups and before the Lab 02 cleanup, and requires typing `DELETE USMS ECS`.
-
-## Floci Limitations and Findings
-
-| # | What I saw | What real AWS would do |
-|---|---|---|
-| 1 | Probe reported `ecs describe-services` "not available" | Same `ClusterNotFoundException`. This is a probe-script false negative, not a Floci gap. |
-| 2 | `describe-scheduled-actions` → `UnsupportedOperation` | Fully supported; Lab 06's scheduled floor will be documented, not executed |
-| 3 | `describe-services` shows `taskDefinition` as `usms-enrolment` / `usms-enrolment:2`, not the full ARN | Always returns the full task definition ARN, including the revision |
-| 4 | Service `events` list is empty (`None`) | Records start, stop and "reached a steady state" messages |
-| 5 | `usms-web-01` was found **stopped** during Exercise 5 (after a Floci restart) | Instances stay in their last state; a stopped instance would need restarting too |
-| 6 | Containers do not receive task-role credentials (`AWS_CONTAINER_CREDENTIALS_RELATIVE_URI`) | The SDK fetches rotating credentials automatically |
-| 7 | Security groups are not enforced on task traffic | Every packet is filtered |
-| 8 | Task start is instant | 20–60 seconds, which Lab 06's cooldowns are sized around |
-| 9 | No cost, no service quotas | Two 256/512 tasks ≈ **$18.02/month** at list price (see Exercise 4); quotas enforced |
-
-**Course-material finding:** `USMS_POLICY_S3_RW` in `lab-01.env` holds a full ARN, so Step 7's ARN construction doubles it. The fix is to use the variable directly.
-
-### Observed vs only reasoned about
-
-| Observed in this lab | Only reasoned about |
-|---|---|
-| Cluster, task definition revisions 1 and 2, both roles and their policies | Container Insights metrics in `AWS/ECS` |
-| Service placement across two private subnets, no public IP | Real Fargate start latency (20–60 s) |
-| Group-referenced security group rule | Security group enforcement on task traffic |
-| `desiredCount` changed by hand and reconciled; **`runningCount` 2, so containers did start in this build** | Task credentials inside the container |
-| Rolling update from `:1` to `:2` (Exercise 2) | Cost and service quotas |
-
+## 8. Analysis and Discussion 
+This lab moved the USMS enrolment service from a single hand-managed EC2 instance to a self-healing ECS service that keeps two tasks running across two Availability Zones. Splitting the execution role from the task role kept each identity least-privilege: ECS uses one to pull the image and write logs, while the application uses the other to reach S3. The same Lab 1 policy now reaches both EC2 and Fargate without any key on disk. Sourcing the security group from usms-app-sg instead of a CIDR block ties access to the web tier itself rather than to IP addresses, which matters because tasks have no fixed IPs. Because the tasks sit in private subnets with no public IP, they depend on Lab 2’s NAT gateway to pull their image. Scaling the service by hand from 2 to 3 and back showed that a fixed desiredCount cannot react to load on its own, which is the gap Lab 06 will fill. Several Floci limitations were recorded, including an empty events list, unsupported scheduled actions and a stopped web instance after a restart.
 
 ##  Conclusion
 
-The USMS enrolment service now runs on ECS Fargate as two tasks across two Availability Zones, in private subnets with no public IP, reachable only from the web tier's security group. The execution role and task role are separate and least-privilege, and the task role delivers Lab 1's S3 policy to a container through a different mechanism than Lab 3's instance profile, with no key on disk in either case.
-
-`desiredCount` is fixed at 2 and was moved only by hand. Exercise 4 shows why that cannot handle the Monday 08:00 enrolment peak, which is the problem Lab 06 solves. Every name and ARN Labs 05 and 06 need is in `configs/lab-04.env`, the verification script passes, and the cleanup script is ready but unrun.
-
-**Handed to the next labs:** `USMS_ECS_CLUSTER` and `USMS_ENROLMENT_SERVICE` (Lab 05 target group and Lab 06 scalable target), `USMS_ENROLMENT_SG` (Lab 05 cutover), `USMS_ENROLMENT_CONTAINER` (load balancer target), `USMS_ECS_DESIRED_BASELINE` = 2 (Lab 06 floor).
-
+All Lab 04 objectives were met, and verify-lab-04.sh reported 38 PASS and 0 FAIL. The enrolment service now runs on ECS Fargate as a private, least-privilege and highly available container tier, and every name and ARN is saved in configs/lab-04.env, ready for the load balancer in Lab 05 and auto scaling in Lab 06.
