@@ -36,7 +36,7 @@ The enrolment service is the endpoint the USMS student portal calls when a stude
 
 ## 4. System Architecture / Design
 
-
+![alt text](<../../screenshots/Lab 4 screenshots/architecture.png>)
 
 **Key design decisions**
 
