@@ -1,0 +1,29 @@
+Lab 04 -> Lab 03 linkage   (generated 2026-10-18T10:22:27Z)
+
+usms-enrolment-sg ........ sg-3cbe6c82e300b3373
+only inbound source ...... sg-8dca672a89099a5a5  (usms-app-sg)
+resolves to instance ..... i-2be79ec06ed2b4cfb
+configs/lab-03.env ....... i-2be79ec06ed2b4cfb  (usms-web-01)
+verdict .................. LOOP CLOSED
+
+Note: the first lookup returned no instance because usms-web-01 was stopped
+(Floci restart). It was started with ec2 start-instances and the lookup re-run.
+Other instances also carry usms-app-sg but are not running, so they are not callers:
+i-51f94d437ecb27850	stopped
+i-bd75bcc316ba408db	terminated
+i-344ebab3eeb42d47a	stopped
+
+This rule (tcp/80 from usms-app-sg) is temporary: Lab 05 removes it once the
+Application Load Balancer becomes the only caller of the enrolment service.
+
+== Tag audit (aws ecs list-tags-for-resource) ==
+-- cluster: arn:aws:ecs:us-east-1:000000000000:cluster/usms-ecs-cluster
+Project	USMS
+Tier	app
+Name	usms-ecs-cluster
+-- service: arn:aws:ecs:us-east-1:000000000000:service/usms-ecs-cluster/usms-enrolment-svc
+Project	USMS
+Tier	app
+Lab	04
+Name	usms-enrolment-svc
+Tag audit: all Project=USMS tags present on cluster and service; no fix needed.
