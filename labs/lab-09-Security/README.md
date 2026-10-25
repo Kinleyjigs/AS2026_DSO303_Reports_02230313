@@ -1,0 +1,1 @@
+Lab 09 - Securing the USMS Application with IAM Roles and Security Groups
