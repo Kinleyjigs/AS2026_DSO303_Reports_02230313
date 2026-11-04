@@ -1,4 +1,4 @@
-# Lab 01 — IAM — completed
+# Lab 01 - IAM - completed
 
 ## What exists after this lab
 - Environment: Floci via docker-compose.yml, FLOCI_STORAGE_MODE=hybrid,
@@ -24,4 +24,4 @@
 - [ ] verify-lab-01.sh with FAIL=0
 
 ## Problems I hit and how I fixed them
-(fill this in — it is graded)
+(fill this in - it is graded)
