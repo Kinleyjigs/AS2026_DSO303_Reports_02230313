@@ -4,7 +4,7 @@
 # ============================================================
 
 # ---- Command output and SECRETS ----
-# NOTE the trailing /* — see the explanation below. It matters.
+# NOTE the trailing /* - see the explanation below. It matters.
 outputs/*
 !outputs/.gitkeep
 
@@ -30,4 +30,3 @@ Thumbs.db
 *.swp
 .vscode/
 .idea/
-outputs/*
