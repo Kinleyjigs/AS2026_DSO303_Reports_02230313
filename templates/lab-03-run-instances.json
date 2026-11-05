@@ -4,8 +4,8 @@
   "MinCount": 1,
   "MaxCount": 1,
   "KeyName": "usms-app-key",
-  "SubnetId": "subnet-d09b8eea",
-  "SecurityGroupIds": ["sg-8dca672a89099a5a5"],
+  "SubnetId": "subnet-ac80d1f4",
+  "SecurityGroupIds": ["sg-2c9a0813bacaf3a94"],
   "IamInstanceProfile": { "Name": "usms-ec2-app-profile" },
   "TagSpecifications": [
     {
