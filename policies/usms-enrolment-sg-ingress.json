@@ -5,7 +5,7 @@
     "ToPort": 80,
     "UserIdGroupPairs": [
       {
-        "GroupId": "sg-8dca672a89099a5a5",
+        "GroupId": "sg-2c9a0813bacaf3a94",
         "Description": "HTTP from the USMS web tier (usms-app-sg) - the only caller of the enrolment API"
       }
     ]
