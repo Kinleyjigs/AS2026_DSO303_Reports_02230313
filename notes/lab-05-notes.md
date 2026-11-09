@@ -22,3 +22,29 @@ Step 18: the escaped backticks in the listener line failed inside $(...); filled
 ## Checkpoint 4 answer
 
 Without the service registering its own targets, I would have to run register-targets / deregister-targets by hand with each new task IP after every scaling event.
+
+## Step 6 "Your turn": widening the health check matcher
+
+Changed the matcher with modify-target-group from HttpCode=200 to 200-399, read it back
+(describe-target-groups showed 200-399), then restored it to 200 (confirmed). No
+recreation was needed; the change applies immediately.
+
+(a) A web application that answers GET / with a 301 or 302 redirect, for example one that
+    redirects "/" to "/login" or forces HTTP to HTTPS, would be reported unhealthy forever
+    under a strict 200 matcher even though it is serving users correctly.
+
+(b) It would be a bug in the script, not in my work. A verification script exists to check
+    that the deployed state meets the intended design, and 200-399 is a valid, working
+    configuration; asserting one exact value turns a deliberate choice into a false failure.
+    The honest fix is to have the script check the property that matters (the health check
+    reports healthy targets, or the matcher falls in an accepted set), or to record the
+    intended value in the lab so the script and the design stay in sync.
+
+## Step 11 "Your turn": desired count 3, then back to 2
+
+Raised desiredCount to 3 with update-service; the target group went from two targets to three
+and back to two with no register-targets or deregister-targets call from me.
+
+Answer: after every scaling event I would have had to run register-targets (or
+deregister-targets) by hand with each new or removed task's IP address, because without the
+service's load balancer link the target group would not track the tasks that come and go.

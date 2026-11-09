@@ -1,1 +1,6 @@
-[ { "Type": "forward", "TargetGroupArn": "arn:aws:elasticloadbalancing:us-east-1:000000000000:targetgroup/usms-enrolment-tg/fd2b36f5a636464d" } ]
+[
+  {
+    "Type": "forward",
+    "TargetGroupArn": "arn:aws:elasticloadbalancing:us-east-1:000000000000:targetgroup/usms-enrolment-tg/1df088ea5d2c4a79"
+  }
+]

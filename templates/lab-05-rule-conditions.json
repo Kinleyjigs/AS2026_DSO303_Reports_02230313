@@ -1,1 +1,8 @@
-[ { "Field": "path-pattern", "PathPatternConfig": { "Values": ["/alb-health", "/alb-health/*"] } } ]
+[
+  {
+    "Field": "path-pattern",
+    "PathPatternConfig": {
+      "Values": ["/alb-health", "/alb-health/*"]
+    }
+  }
+]
