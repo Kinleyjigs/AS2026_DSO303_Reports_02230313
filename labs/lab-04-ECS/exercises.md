@@ -1,15 +1,16 @@
 # Lab 04 - Exercises
 
 ## Exercise 1 - A second service, deployed
+```
++---------+----------------------+---------+----------+
+| Desired |         Name         | Running | Status   |
++---------+----------------------+---------+----------+
+|    2    | usms-enrolment-svc   |    2    | ACTIVE   |
+|    1    | usms-results-svc     |    1    | ACTIVE   |
++---------+----------------------+---------+----------+
+```
 
-|                   DescribeServices                   |
-+---------+----------------------+----------+----------+
-| Desired |        Name          | Running  | Status   |
-+---------+----------------------+----------+----------+
-|  2      |  usms-enrolment-svc  |  2       |  ACTIVE  |
-|  1      |  usms-results-svc    |  1       |  ACTIVE  |
-+---------+----------------------+----------+----------+
-
+```
 |   ListTagsForResource  |
 +------------------------+
 ||         tags         ||
@@ -21,6 +22,7 @@
 ||  Service |  results  ||
 ||  Lab     |  04       ||
 |+----------+-----------+|
+```
 
 **Notes:** usms-results-svc reuses the usms-enrolment task definition family; only the service
 name, desired count (1) and tags changed. Subnet and security group IDs were looked up by Name
@@ -30,12 +32,15 @@ tag with --query, not copied. Not recorded in configs/lab-04.env because Exercis
 
 ### Service now runs revision 2
 ------------------------------------------------------------------
+```
 |                        DescribeServices                        |
 +---------+----------+----------------------+--------------------+
 | Desired | Running  |       Service        |      TaskDef       |
 +---------+----------+----------------------+--------------------+
 |  2      |  2       |  usms-enrolment-svc  |  usms-enrolment:2  |
 +---------+----------+----------------------+--------------------+
+```
+```
 ### Revision 1 still exists
 ----------------------------------
 |     DescribeTaskDefinition     |
@@ -44,6 +49,9 @@ tag with --query, not copied. Not recorded in configs/lab-04.env because Exercis
 +--------+------------+----------+
 |  512   |  1         |  ACTIVE  |
 +--------+------------+----------+
+```
+
+```
 ### Revision 2
 ----------------------------------
 |     DescribeTaskDefinition     |
@@ -52,6 +60,7 @@ tag with --query, not copied. Not recorded in configs/lab-04.env because Exercis
 +--------+------------+----------+
 |  1024  |  2         |  ACTIVE  |
 +--------+------------+----------+
+```
 
 **What changed:** the service's `taskDefinition` field changed from `usms-enrolment:1` to
 `usms-enrolment:2`, while revision 1 itself did not change at all - revisions are immutable,
