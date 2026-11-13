@@ -64,3 +64,26 @@ After floci-down / floci-up, the cluster (ACTIVE 1.30), node group, namespace us
 - USMS_K8S_DEPLOY_GATEWAY: the Deployment whose Service becomes NodePort, then LoadBalancer and Ingress.
 - USMS_K8S_CPU_REQUEST: 50m, so I can check the HPA's percentage maths myself (my baseline was about 1m = 2%).
 The rest (role ARNs, policy ARNs, security group, results/timetable names) are records of what exists, not inputs Lab 08 acts on.
+
+## Section 14 - Review questions
+
+**1. Cluster ACTIVE but every pod Pending.**
+ACTIVE only means the control plane (API server, scheduler, etcd) is up. Pods need the data plane, which means nodes to run on. If no node can take the pod, the scheduler leaves it Pending. Two causes: no node group, or nodes that never joined (for example a node role without eks:DescribeCluster), and pods requesting more CPU/memory than any node has (my usms-toobig pod in Step 19).
+
+**2. Swapping the two trust policies.**
+The control plane (eks.amazonaws.com) could not assume the cluster role, and the EC2 nodes (ec2.amazonaws.com) could not assume the node role. On real AWS, create-cluster in Step 8 fails straight away, and if it got that far, the nodes in Step 10 would never register, so get nodes in Step 11 would show none. Floci did not catch this because it stores trust policies without enforcing them.
+
+**3. Readiness vs liveness probe.**
+Readiness decides whether a pod receives traffic (it is removed from the Service endpoints when it fails). Liveness decides whether the container is restarted. Getting it backwards: a load-sensitive check used as liveness makes busy pods get killed and restarted under load, which makes the outage worse. In Exercise 3, a failing readiness probe (/healthz returning 404) kept both pods out of the Service, so it had no endpoints.
+
+**4. Rollback still showing 1.1.0.**
+`rollout undo` only reverts the pod template (image, env, etc.). The ConfigMap is a separate object that stayed at 1.1.0, and the restarted pods read it again. So it is a rollback of the Deployment, not of the whole release, and the statement is partly true. The fix is to version config with the workload: give each version its own ConfigMap name (for example usms-app-config-v2) and reference it from the pod template, so undo switches the config back too.
+
+**5. maxUnavailable 0 vs the default 25%.**
+With 2 replicas, maxUnavailable 0 / maxSurge 1 starts a new pod first and never drops below 2 ready pods (it peaks at 3). The default allows 1 pod down, so capacity can drop to 1 during the roll. Use 0 for a user-facing service like enrolment that must keep full capacity; the default suits a less critical service like results, or a tight cluster with no spare room to surge. Enrolment's setting is closer to Lab 04's ECS minimumHealthyPercent 100 / maximumPercent 200.
+
+**6. "A Secret is encrypted, so committing it is fine."**
+Wrong. In Step 17, one `base64 -d` turned the stored value straight back into the plain token, so base64 is an encoding, not encryption. A Secret keeps the value out of the image, can be restricted with RBAC, and is hidden from `kubectl describe`, but anyone who can read the manifest or the Secret can read the value, and once it is in Git history it stays there. On real EKS I would turn on KMS envelope encryption for Secrets, keep values in AWS Secrets Manager rather than Git, and use IRSA so pods need no stored AWS keys at all.
+
+**7. ECS or Kubernetes for USMS.**
+ECS on Fargate. USMS is a small team in one region with a few stateless services, and it is idle for most of the year, so paying for and patching a cluster and nodes is waste. Harder than Lab 04: two IAM roles plus a cluster and node group to manage, a separate tool (kubectl) and login that Floci would not even accept, and pods sharing the node role instead of each task having its own role. What Kubernetes gave me that ECS could not: the same YAML manifests run on any Kubernetes cluster, plus built-in DNS service discovery and instant rollback with `kubectl rollout undo`.
