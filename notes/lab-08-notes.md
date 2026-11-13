@@ -29,3 +29,16 @@
 1. If the AWS control plane has a bad afternoon, what happens to each of the two scaling arrangements, and which of them can I still debug?
 
 2. For USMS specifically - one small team, one region, quiet for eight months and very busy for two - which would I choose, and what is the strongest argument AGAINST my own choice?
+
+## Exercise 5 Part 3 - ECS or Kubernetes for USMS
+
+**My choice: ECS on Fargate.**
+
+Why:
+- Small team, one region, busy only 2 months a year.
+- Fargate always has room. On EKS the HPA added pods, but nothing added nodes (node group update failed), so pods can sit Pending.
+- Lab 05 ALB worked fully. Here the Ingress got no address (no controller).
+- No IRSA here, so S3 access had to come from the node role, shared by every pod. ECS task roles are per task.
+
+Strongest argument against:
+- Kubernetes gives more control (HPA behavior, PDBs) and one Ingress for many services, and moves to another cloud easily.
