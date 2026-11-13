@@ -54,3 +54,13 @@ For USMS I would choose ECS on Fargate: it is three small stateless services, an
 Until IRSA works, the node role (usms-eks-node-role) gives USMSStudentDataReadWrite to every pod on the node, including a compromised one.
 ## Step 22 - persistence
 After floci-down / floci-up, the cluster (ACTIVE 1.30), node group, namespace usms, all three Deployments (2/1/2 ready) and the ConfigMaps were all present. The diff is not a loss: the before-script records the nodegroup and Service lines, while the after-script records namespace and ConfigMap lines, so those lines can never match. kubectl reconnected without rebuilding the kubeconfig.
+## Exercise 5 - what Lab 08 needs from configs/lab-07.env
+- USMS_EKS_CLUSTER: every aws eks call in Lab 08 names the cluster.
+- USMS_EKS_NODEGROUP: Lab 08 changes the node group's scaling config (the data-plane side of scaling).
+- USMS_EKS_NAMESPACE: every kubectl command works inside namespace usms.
+- USMS_EKS_LB_PORTS: Floci needs 8081,8082 to publish a LoadBalancer/Ingress; without it nothing outside the cluster is reachable.
+- USMS_EKS_ENDPOINT: to confirm kubectl points at the right cluster after a restart (mine is https://localhost:6500).
+- USMS_K8S_DEPLOY_ENROLMENT: the Deployment the HorizontalPodAutoscaler will target.
+- USMS_K8S_DEPLOY_GATEWAY: the Deployment whose Service becomes NodePort, then LoadBalancer and Ingress.
+- USMS_K8S_CPU_REQUEST: 50m, so I can check the HPA's percentage maths myself (my baseline was about 1m = 2%).
+The rest (role ARNs, policy ARNs, security group, results/timetable names) are records of what exists, not inputs Lab 08 acts on.
