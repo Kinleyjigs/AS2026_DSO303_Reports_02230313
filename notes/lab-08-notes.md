@@ -44,37 +44,63 @@ Strongest argument against:
 - Kubernetes gives more control (HPA behavior, PDBs) and one Ingress for many services, and moves to another cloud easily.
 
 ## Section 14 - Review Questions
+## 1. Does HPA 50% mean the node is using 50% CPU?
 
-**1. "HPA 50% = node at 50% CPU"?**
-- Wrong. It is 50% of the pod's CPU **request** (50m → 25m per pod), not the node.
-- Halve the request (25m) → same load looks twice as high → HPA scales out sooner, but each pod is given less CPU. Less capacity per pod, more pods.
+- **No.** It means the pod is using 50% of its requested CPU, not the node's CPU.
+- Example: If a pod requests 50m CPU, 50% means 25m CPU.
+- If we reduce the CPU request to 25m, the same workload looks like 100% CPU usage.So, HPA will create more pods sooner, but each pod has less CPU available.
 
-**2. 10x traffic by Monday - plan**
-1. More pods (raise HPA max) → check pods Ready, not Pending.
-2. More nodes (raise node group desired/max) → check nodes Ready, Pending pods schedule.
-3. Bigger pods only if pods hit their limit → check `kubectl top pods`.
-4. Bigger nodes **cannot change in place** → make a new node group, drain the old one.
+## 2. Traffic increases 10 times by Monday. What is the plan?
 
-**3. App Auto Scaling (outside) vs HPA (inside)**
-- If the cluster is broken, the HPA is broken too. App Auto Scaling keeps working outside.
-- If AWS has an outage, App Auto Scaling stops, but the HPA keeps going and I can still debug it with `kubectl describe hpa`.
+1. **Add more pods:** Increase the HPA maximum limit. Check whether the pods are Ready.
+2. **Add more nodes:** Increase the node group's desired and maximum size. Check whether the nodes are Ready.
+3. **Increase pod resources:** Do this only if pods are running out of CPU or memory. Check using `kubectl top pods`.
+4. **Increase node size:** We cannot directly make an existing node bigger. Create a new node group and move workloads from the old nodes.
 
-**4. HPA 4 → 8, four pods Pending 20 min**
-- Two separate loops: HPA adds pods, but nothing adds nodes. No room → Pending.
-- Fix normally comes from **Cluster Autoscaler / Karpenter** (adds nodes).
-- Lowering the CPU request is bad: it changes the HPA's denominator, so it scales more aggressively and old numbers no longer compare.
+## 3. App Auto Scaling vs HPA
 
-**5. NodePort vs LoadBalancer**
-- NodePort = a high port (30000-32767) on every node. No single address.
-- LoadBalancer = NodePort + a cloud load balancer with one stable address.
-- Need: "students reach it on one normal address, port 80". NodePort fails, LoadBalancer works.
+- **App Auto Scaling:** Works outside the Kubernetes cluster. It can still work even if the cluster has problems.
+- **HPA:** Works inside Kubernetes. If the cluster is broken, HPA may also stop working.
+- If AWS has an outage, App Auto Scaling may stop working, but HPA can continue working if the Kubernetes cluster is still running.
 
-**6. /enrolment via Ingress or via gateway?**
-- Choose the **gateway** route. Remove `/enrolment` from the Ingress.
-- The gateway strips the prefix and adds headers; the direct Ingress rule skips that.
-- One entry point = one place to control access.
+## 4. HPA increases pods from 4 to 8, but 4 pods stay Pending for 20 minutes. Why?
 
-**7. PDB did not stop `kubectl delete pod`**
-- Correct: a PDB only limits **evictions** (voluntary: drain, autoscaler). Delete does not use the eviction API.
-- Involuntary (node crash, OOM, EC2 terminated) is ignored too.
-- Saves production: during a node upgrade drain, the PDB stops the last gateway pod being evicted, so the site stays up.
+- HPA increases the number of pods, but it does not automatically add more nodes.
+- If the existing nodes do not have enough resources, the new pods stay Pending.
+- **Solution:** Use Cluster Autoscaler or Karpenter to automatically add more nodes.
+- Reducing CPU requests is not always a good solution because it changes how HPA calculates CPU usage and may cause it to create even more pods.
+
+## 5. NodePort vs LoadBalancer
+
+- **NodePort:** Opens a port (30000–32767) on every node. Users access the application through a node's IP and that port.
+- **LoadBalancer:** Creates a cloud load balancer with one stable address to access the application.
+- If students need to access the application using one normal address on port 80, LoadBalancer is the better choice.
+
+## 6. Should `/enrolment` use Ingress or Gateway?
+
+- Choose the **Gateway** approach.
+- The gateway removes the `/enrolment` prefix before forwarding the request.
+- It also adds the required headers.
+- Direct Ingress skips these steps.
+- Using one gateway gives us one place to manage access to the application.
+
+## 7. Why did PDB not stop `kubectl delete pod`?
+
+- **PDB (Pod Disruption Budget)** protects pods during planned maintenance.
+- It controls voluntary pod removal through the eviction process, such as when draining a node.
+- However, `kubectl delete pod` does not use the eviction process, so PDB cannot stop it.
+- It also cannot prevent unexpected failures, such as node crashes or OOM kills.
+- **Example:** During a node upgrade, PDB can prevent the last gateway pod from being evicted, helping keep the website running.
+
+---
+
+## Important Kubernetes Differences
+
+| Concept | Main purpose |
+|---|---|
+| HPA | Adds or removes pods |
+| Cluster Autoscaler | Adds or removes nodes |
+| NodePort | Exposes an application through a node's IP and port |
+| LoadBalancer | Provides one stable external address |
+| Gateway | Controls and forwards incoming requests |
+| PDB | Protects pods during planned maintenance |
