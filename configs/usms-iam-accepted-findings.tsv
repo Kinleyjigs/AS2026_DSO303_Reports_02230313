@@ -1,0 +1,10 @@
+# USMS IAM audit - ACCEPTED findings (Lab 09 Exercise 2).
+# Read by scripts/utilities/usms-iam-audit.sh. A finding listed here is reported as ACCEPTED
+# and does not make the audit exit 1. Every entry MUST carry a reason and a compensating control;
+# an entry without one is a suppression, not a decision.
+#
+# Format (TAB-separated):  role <TAB> text the finding contains <TAB> reason and compensating control
+usms-ec2-app-role	confused deputy	EC2 does not send aws:SourceArn/SourceAccount for instance-profile credentials, so a Condition would deny everything. Compensating: IMDSv2 required + hop limit 1 (Step 11); USMSDeployBase explicitly denies passing any role to EC2 (Step 8).
+usms-eks-node-role	confused deputy	Same as usms-ec2-app-role: EKS nodes are EC2 instances using an instance profile, which sends no source keys. Out of scope for Lab 09 (no IRSA on this build); re-audit in a later lab.
+usms-eks-cluster-role	confused deputy	Out of scope for Lab 09 (EKS estate, Labs 7/8). verify-lab-07 asserts this trust; change it in a dedicated EKS hardening pass, not here.
+AWSServiceRoleForEcsApplicationAutoscaling	confused deputy	Service-linked role: AWS owns and locks its trust policy (iam:UpdateAssumeRolePolicy is refused). Compensating: AWS scopes it to the one service; nobody in the account can pass or edit it.
