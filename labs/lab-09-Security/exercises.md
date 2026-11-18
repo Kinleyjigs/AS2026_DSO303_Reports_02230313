@@ -5,89 +5,55 @@
 
 *Figure 1: usms-app-sg now has 6 written egress rules and no default rule; verify-lab-09 is still PASS=50 FAIL=0.*
 
-| Need | Rule |
-|---|---|
-| S3 | tcp/443 → S3 prefix list |
-| AWS APIs (STS) | tcp/443 → `0.0.0.0/0` |
-| Enrolment API | tcp/80 → `usms-alb-sg` |
-| Database | tcp/5432 → `usms-db-sg` |
-| DNS | udp + tcp/53 → `10.0.0.2` |
+In this exercise I replaced the default "allow everything out" rule on `usms-app-sg` with rules for only what the web server actually needs. It needs to reach S3 for the transcripts (through the S3 prefix list), AWS services such as STS over HTTPS (port 443), the enrolment API through the load balancer (port 80 to `usms-alb-sg`), the database (port 5432 to `usms-db-sg`), and DNS (port 53 to `10.0.0.2`, the VPC's built-in DNS server).
 
-- Unquoted heredoc, so the SG IDs are filled in.
-- DNS: UDP first, TCP for large answers.
-- IMDS (`169.254.169.254`) needs no rule: SGs don't filter it.
-- Bastion egress should be only tcp/22 → `usms-app-sg`.
+DNS needs two rules, because it normally uses UDP but switches to TCP for large answers. The load balancer and the database are named by their security group instead of an IP address, because their IPs can change but the group stays the same. I added the new rules first and only then removed the default rule, so there was never a moment with no outbound access. The metadata address `169.254.169.254` does not need a rule, because security groups do not filter it. The bastion is different: its only job is to start SSH sessions, so its egress should only be port 22 to `usms-app-sg`.
 
 ### Exercise 2 - Break-glass role
 ![alt text](<../../screenshots/Lab 9 screenshots/27.png>)
 
 *Figure 2: Break-glass role with MFA + ExternalId, 1-hour session and a boundary. IAM audit: HIGH=0, 4 ACCEPTED.*
 
-- **usms-breakglass-role:** only `usms-admin-01`, MFA **and** ExternalId, 1-hour session, boundary, only the 2 scaling calls from Lab 6.
-- **Fixed:** exec role and Lambda role trust (added SourceAccount + SourceArn).
-- **Accepted (with reason):** EC2 and EKS roles (EC2 can't send these keys), the service-linked role (AWS locks it).
-- Accepted list: `configs/usms-iam-accepted-findings.tsv`. The audit shows them as `ACCEPTED`.
+I created `usms-breakglass-role`, an emergency role for suspending auto scaling. Only `usms-admin-01` can use it, and only if they have signed in with MFA **and** give the correct ExternalId. Because both conditions are in the same block, both must be true. The session lasts at most one hour (the shortest IAM allows), the role has the permissions boundary, and it can only call the two Application Auto Scaling actions that Lab 6 used to suspend scaling.
+
+I also dealt with the roles that the audit flagged for having no conditions in their trust policy. I fixed the ECS execution role and the Lambda role by adding `aws:SourceAccount` and `aws:SourceArn`. The EC2 and EKS roles could not be fixed this way, because EC2 does not send those keys, so I accepted them with a reason (IMDSv2 and the PassRole deny protect them instead). The service-linked role was also accepted, because AWS controls its trust policy. These decisions are written in `configs/usms-iam-accepted-findings.tsv`, and the audit script now shows them as `ACCEPTED` instead of HIGH. The audit ended with HIGH=0.
 
 ### Exercise 3 - Exposure report
 ![alt text](<../../screenshots/Lab 9 screenshots/28.png>)
 
 *Figure 3: Same output from two folders. 16 interfaces classified by route, public IP and SG.*
 
-| Verdict | Example |
-|---|---|
-| INTERNET-EXPOSED | `usms-web-01` |
-| NOT-ADDRESSABLE (no public IP) | `usms-web-02` |
-| PUBLIC-BUT-CLOSED | NAT gateway |
-| PRIVATE-EGRESS | tasks, DB |
-| UNKNOWN (SG deleted) | 2 old task interfaces |
+I wrote `usms-exposure-report.sh`, which looks at every network interface in the VPC and decides how exposed it is. It checks three things: whether the interface has a public IP, whether its subnet has a route to the internet gateway, and whether its security group allows traffic from the internet. It never looks at names or tags. The script gave the same output when run from my home folder and from the lab folder.
 
-- Public with no ingress rule = "closed today", not safe: one rule away from exposure.
-- No `set -e`: one failed call should not stop the report.
+The result was that only `usms-web-01` is fully exposed to the internet. `usms-web-02` has an open security group but no public IP, so it cannot be reached. The ECS tasks and the database are private. The NAT gateway has a public IP but no rules allowing traffic in, so I marked it "public but closed": it is safe today, but only one rule change away from being exposed. Two old task interfaces were marked "unknown" because their security group no longer exists. I did not use `set -e`, so one failed command does not stop the whole report.
 
 ### Exercise 4 - Security review
 ![alt text](<../../screenshots/Lab 9 screenshots/29.png>)
 
 *Figure 4: Who can read transcripts: 3 roles read/write, 2 roles read, and usms-audit-01 through its group.*
 
-**1. Web server (second front door)**
-- `usms-web-01` is open on 80/443 to the internet, older than the ALB.
-- Should move behind the ALB. Breaks direct IP access and needs an HTTPS listener.
+**The second front door.** The load balancer is meant to be the only public entry point, but `usms-web-01` is still open to the internet on ports 80 and 443 from Lab 3. I recommend putting it behind the load balancer and then closing those rules. This would break anyone who uses the server's IP directly, and the load balancer would need an HTTPS listener first.
 
-**2. Egress control**
-- **Stops:** DNS tunnelling, reverse shells on odd ports, SSH/SMTP out.
-- **Doesn't stop:** data sent out over HTTPS (needs Network Firewall), or copying to another S3 bucket (needs endpoint/bucket policy).
+**What egress control bought.** Restricting outbound traffic stops an attacker from sending data out through DNS, opening a reverse shell on an unusual port, or using our servers to attack others over SSH or email. It does not stop data being sent out over HTTPS (port 443 is still open), and it does not stop someone copying transcripts to their own S3 bucket. Those would need AWS Network Firewall and an S3 bucket or endpoint policy.
 
-**3. Who can read transcripts**
+**Who can read the transcripts.** The EC2, ECS task and EKS node roles can read, write and delete transcripts. The transcripts reader role and the Lambda role can only read. I also found that `usms-audit-01` can read every transcript through the `usms-auditors` group, which nobody planned. On real AWS, IAM Access Analyzer would confirm this list is complete. Floci cannot do that, so I checked every policy and group by hand.
 
-| Principal | Access |
-|---|---|
-| ec2-app, ecs-task, eks-node roles | Read + Write + Delete |
-| transcripts-reader, lambda-exec roles | Read |
-| `usms-audit-01` (auditors group) | **Read, unplanned** |
+| Who | Access | Through |
+|---|---|---|
+| ec2-app, ecs-task, eks-node roles | Read, write, delete | USMSStudentDataReadWrite |
+| transcripts-reader role | Read | USMSStudentDataReadOnly |
+| lambda-exec role | Read | USMSLambdaBasic |
+| usms-audit-01 | Read (unplanned) | usms-auditors group |
 
-- Real AWS checks this with IAM Access Analyzer. Floci can't, so I read every policy and group.
+**Detection.** To know when something changes, I would turn on CloudTrail (free for management events), GuardDuty, AWS Config, IAM Access Analyzer and VPC Flow Logs. These only detect problems; the security groups and policies from this lab are what prevent them. After an incident I would read CloudTrail first, then GuardDuty findings, then the Flow Logs, then the S3 access logs.
 
-**4. Detection**
-- CloudTrail (free), GuardDuty, AWS Config, Access Analyzer, VPC Flow Logs.
-- After an incident: CloudTrail → GuardDuty → Flow Logs → S3 logs.
-
-**5. Move web behind the ALB (not run)**
-1. Create target group `usms-web-tg`.
-2. Register `usms-web-01`.
-3. Add a listener rule on the ALB.
-4. Allow app-sg port 80 from alb-sg.
-5. Allow alb-sg egress to app-sg.
-6. Check target health.
-7. ⚠️ Remove 80/443 from `0.0.0.0/0` on app-sg (reversible; breaks direct access and verify-lab-03).
+**Moving the web server behind the load balancer (written, not run).** First create a target group and register `usms-web-01`. Then add a listener rule on the load balancer, allow port 80 into `usms-app-sg` from `usms-alb-sg`, and allow the load balancer's egress to reach `usms-app-sg`. Check that the target is healthy. Only then remove the 80/443 rules from `0.0.0.0/0`. This last step is the dangerous one: it can be undone by adding the rules back, but it breaks direct access and the Lab 3 verify check.
 
 ### Exercise 5 - Bucket policy draft
 ![alt text](<../../screenshots/Lab 9 screenshots/30.png>)
 
 *Figure 5: Draft bucket policy built from IAM, plus the Lab 10 readiness file.*
 
-- Bucket name read from Lab 1's policy, not typed.
-- Allows the 5 roles only what they already have.
-- Denies non-HTTPS requests and everyone else.
-- Would block `usms-audit-01`.
-- Draft only: nothing applied. `configs/lab-09.env` now has 17 exports.
-- Bucket policy vs IAM policy: IAM stops one role; a bucket policy stops everyone, even other accounts.
+The script `usms-bucket-policy-draft.sh` creates a draft bucket policy and a readiness report for Lab 10. It reads the bucket name from Lab 1's policy instead of typing it, and it finds the five roles that already have S3 access to the bucket. Each role is allowed only the actions it already has.
+
+The policy also blocks any request that does not use HTTPS, and blocks every other user apart from those five roles and the account root. All the checks passed, and I added the draft's path to `configs/lab-09.env` (now 17 exports). The script only creates a draft and does not change anything in AWS. I also noticed this policy would block `usms-audit-01`, which fixes the unplanned access found in Exercise 4. The difference from an IAM policy is that an IAM policy only affects the role it is attached to, while a bucket policy controls access for everyone, including users from other AWS accounts.
